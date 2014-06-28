@@ -13,6 +13,7 @@ package
 	import flash.text.TextField;
 	import flash.text.TextFieldType;
 	import flash.text.TextFormat;
+	import flash.utils.ByteArray;
 	import flash.utils.Timer;
 	import flash.utils.getQualifiedClassName;
 	import flash.utils.getTimer;
@@ -47,8 +48,10 @@ package
 		private var _controls:Array = [];
 		private var _positions:Array = [];
 		private var _labels:Array = ["串口","","型号","","升级固件","连接串口","自动弹奏","","间隔（毫秒）","400","自动演奏"];
-		private var _music_buttons:Array = ["1","2","3","4","5","6","7","8","9","0","-","=","[","]","\\"];
+		private var _music_buttons:Array = ["1","2","3","4","5","6","7","Q","W","E","R","T","Y","U","I"];
 		private var _music_labels:Array = ["1","2","3","4","5","6","7","1","2","3","4","5","6","7","1"];
+		private var _music_value:Object = {1:1,2:2,3:3,4:4,5:5,6:6,7:7,
+										   q:8,w:9,e:10,r:11,t:12,y:13,u:14,i:15};
 		[SWF(width="1024",height="360")]
 		
 		public function MusicBot()
@@ -84,6 +87,7 @@ package
 			updatePorts();
 			checkUpgradeState();
 			_button_connect.addEventListener(MouseEvent.CLICK,onClickConnect);
+			_button_upgrade.addEventListener(MouseEvent.CLICK,onClickUpgrade);
 			_combobox_port.addEventListener(Event.OPEN,onShowPorts);
 			_combobox_port.addEventListener(MouseEvent.CLICK,onShowPorts);
 			stage.addEventListener(KeyboardEvent.KEY_UP,onKeyUp);
@@ -216,6 +220,7 @@ package
 		private function onClickUpgrade(evt:MouseEvent):void{
 			if(SerialManager.sharedManager().isConnected){
 				SerialManager.sharedManager().connect("upgrade");
+				_button_connect.label = "连接串口";
 			}
 		}
 		private function onChangedBoard(evt:Event):void{
@@ -229,7 +234,7 @@ package
 			}
 			if(evt.charCode>20){
 				var s:String = String.fromCharCode(evt.charCode);
-				SerialManager.sharedManager().sendString(s);
+				sendValue(s);
 				if(!_check_auto.selected){
 					_text_auto.appendText(s);
 					onTextChanged();
@@ -237,6 +242,10 @@ package
 			}
 		}
 		private function buttonCallback(s:String):void{
+			s = s.toLowerCase();
+			if(SerialManager.sharedManager().isConnected){
+				sendValue(s);
+			}
 			_text_auto.appendText(s);
 			onTextChanged();
 		}
@@ -257,10 +266,21 @@ package
 						_lastIndex = 0;
 					}
 					var s:String = _text_auto.text.charAt(_lastIndex);
-					SerialManager.sharedManager().sendString(s);
+					sendValue(s);
 					_lastIndex++;
 				}
 			}
+		}
+		private function sendValue(s:String):void{
+			var bytes:ByteArray = new ByteArray;
+			if(_music_buttons.indexOf(s.toUpperCase())>-1){
+				bytes.writeByte(_music_value[s.toLowerCase()]);
+				trace("v:",_music_value[s.toLowerCase()]);
+			}else{
+				bytes.writeByte(100);
+				trace("nv:",100);
+			}
+			SerialManager.sharedManager().sendBytes(bytes);
 		}
 	}
 }
