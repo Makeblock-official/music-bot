@@ -12,15 +12,15 @@ MeRGBLed::MeRGBLed(uint8_t port):MePort(port) {
 }
 MeRGBLed::MeRGBLed(uint8_t port,uint8_t slot):MePort(port){
 	if(slot==1){
-		pinMask = digitalPinToBitMask(s2);
-		ws2812_port = portOutputRegister(digitalPinToPort(s2));
-		ws2812_port_reg = portModeRegister(digitalPinToPort(s2));
-                pinMode(s2,OUTPUT);
-	}else{
 		pinMask = digitalPinToBitMask(s1);
 		ws2812_port = portOutputRegister(digitalPinToPort(s1));
 		ws2812_port_reg = portModeRegister(digitalPinToPort(s1));
                 pinMode(s1,OUTPUT);
+	}else{
+		pinMask = digitalPinToBitMask(s2);
+		ws2812_port = portOutputRegister(digitalPinToPort(s2));
+		ws2812_port_reg = portModeRegister(digitalPinToPort(s2));
+                pinMode(s2,OUTPUT);
 	}
 	//*ws2812_port_reg |= pinMask; // set pinMode OUTPUT
 	setNumber(4);

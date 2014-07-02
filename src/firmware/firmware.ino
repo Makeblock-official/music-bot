@@ -1,10 +1,3 @@
-
-
-//You must install the Stepper libraries:http://www.airspayce.com/mikem/arduino/Stepper/Stepper-1.40.zip
-//Stepper Driver connection
-//connect  	1A and 1B to stepper coil 1  nornally  black and green wire
-//connect 	2A and 2B to stepper coil 2  nornally red and blue wir
-
 #include "MePort.h"
 #include "MeDCMotor.h"
 #include "MeUltrasonic.h"
@@ -29,37 +22,11 @@ int targetIndex = -1;
 int currentIndex = -1;
 int value;
 long startPosition = 0;
-
+char mode=1;
 unsigned int knockFlag = false;
 unsigned int onestep = 79;
 int prevIndex=0;
 int lastNum = 0;
-
-void initStepper()
-{
-  stepper.setMaxSpeed(500);
-  stepper.setAcceleration(10000);
-  stepper.run(); 
-  stepper.moveTo(-10000);
-  while(sw.Dread1())  
-  {
-      if(!stepper.run()) break;
-  }
-  stepper.stop();
-  delay(500);
-  stepper.setCurrentPosition(0);
-  startPosition = -50;
-  stepper.setMaxSpeed(20000);
-  stepper.setAcceleration(10000);
-  stepper.run();
-  stepper.moveTo(50);
-  while(stepper.currentPosition()!=50) 
-  {
-    stepper.run();
-  }
-  stepper.stop(); 
-//  Serial.println("Stepper Begin");
-}
 
 void setup()
 {
@@ -84,96 +51,89 @@ int ledFlag = true;
 
 void loop()
 {
-    if(Serial.available())
-    {
-    char temp = Serial.read();
-   //temp -= 49; 
-    if(temp< 0x12){
+   if(mode) ultra_control(); //检测超声波 
+   upper_computer();         //检测上位机
+   checkStepperPosition();  
+   delay(50);
+}
+
+void upper_computer()
+{
+  if(Serial.available())
+ {
+     char temp = Serial.read();
+     if(temp=='M')   //开启超声波，上电默认开启模式
+     {
+       mode=1;
+       Serial.read();
+       return;
+     }
+     if(temp=='N')   //关闭超声波
+     {
+       mode=0; 
+       Serial.read();       
+       return;
+     }
+     if(temp< 0x12)
+     {
        targetIndex = temp;
        knockFlag = true;
-    }
+     }
      if(targetIndex!=prevIndex)
      {
        moveStepper(1);
        prevIndex = targetIndex;  
      }
-  }
-  else
-  {
-    value = ultraSensor.distanceCm();
-//    Serial.println(value);
-    if(value <70)
-    {
-    if(value <10)
-    {
-      targetIndex = 1;
-    }
-      else if(value <20)
-      {
-      targetIndex = 2;
-      }
-      else if(value <30)
-      {
-      targetIndex = 3;
-      }
-      else if(value <40)
-      {
-      targetIndex = 4;
-      }
-      else if(value <50)
-      {
-      targetIndex = 5;
-      }
-      else if(value <60)
-      {
-      targetIndex = 6;
-      }
-      else if(value <70)
-      {
-      targetIndex = 7;
-      }
-      else
-      { 
-      targetIndex = 16;
-      }
-      if(targetIndex!=prevIndex)
-      {
-       if(targetIndex<16)
-       {
-         knockFlag = true;
-         moveStepper(2);
-       }
-       prevIndex = targetIndex;  
-      }
-    } 
-  }
-//   indicators(targetIndex*2,20,30,40);
-//   delay(150);
-   checkStepperPosition();
-   delay(50);
+  }  
 }
+
+void initStepper()
+{
+  stepper.setMaxSpeed(500);
+  stepper.setAcceleration(10000);
+  stepper.run(); 
+  stepper.moveTo(-10000);
+  while(sw.Dread1())  
+  {
+    if(!stepper.run()) break;
+  }
+  stepper.stop();
+  delay(1000);
+  stepper.setCurrentPosition(0);
+  startPosition=0;
+  stepper.run();
+  stepper.moveTo(29);
+  while(stepper.currentPosition()!=29) 
+  {
+    stepper.run();
+  }
+  stepper.stop(); 
+  stepper.setMaxSpeed(20000);
+  stepper.setAcceleration(10000);
+  stepper.setCurrentPosition(79);
+  stepper.run();
+}
+
 
 void music()
 {
-  int i;
-  for(i=0;i<num;i++)
-   {
-     // targetIndex=(a[i]+6);
-      targetIndex=(a[i]);
-      if (targetIndex==0)
-      delay(200);
-      else
-      {
-        moveStepper(1);
-        kickoff(); 
-      }
+  int i=0;
+  for(int i;i<num;i++)
+  {
+     targetIndex=(a[i]);
+     if (targetIndex==0)
+     delay(200);
+     else
+     {
+       moveStepper(1);
+       kickoff(); 
+     }
    }
 }
 
 void kickoff()
 {
   knockFlag = false; 
-//  Serial.println("kick"); 
   pinMode(6,OUTPUT);
   analogWrite(6,100);
   delay(50);
@@ -181,9 +141,9 @@ void kickoff()
   pinMode(6,INPUT);
 }
 
-void moveStepper(int x)
+void moveStepper(char x)
 {
-  if(targetIndex >=  0)
+  if(targetIndex>=0)
   {
     int stepPos = startPosition+targetIndex*onestep; 
     stepper.moveTo(stepPos);
@@ -191,7 +151,6 @@ void moveStepper(int x)
     int r=random(1,200);
     int b=random(1,200);
     int g=random(1,200);
-    if(x==2 && targetIndex==14) targetIndex++;
     indicators(targetIndex*x,r,b,g);
     delay(50);
   }
@@ -200,25 +159,77 @@ void moveStepper(int x)
 void checkStepperPosition()
 {
   int steptogo = abs(stepper.currentPosition()-stepper.targetPosition());
-    if(steptogo==0 && knockFlag){
+    if(steptogo==0 && knockFlag)
+    {
       kickoff();
     }
 }
 
+void ultra_control()
+{
+    value = ultraSensor.distanceCm();
+    if(value==0) return;
+    if(value <70)
+    {
+      if(value <10)
+      {
+        targetIndex = 1;
+      }
+      else if(value <20)
+      {
+        targetIndex = 2;
+      }
+      else if(value <30)
+      {
+        targetIndex = 3;
+      }
+      else if(value <40)
+      {
+        targetIndex = 4;
+      }
+      else if(value <50)
+      {
+        targetIndex = 5;
+      }
+      else if(value <60)
+      {
+        targetIndex = 6;
+      }
+      else if(value <70)
+      {
+        targetIndex = 7;
+      }
+      else
+      { 
+        targetIndex = 16;
+      }
+      if(targetIndex!=prevIndex)
+      {
+       if(targetIndex<16)
+       {
+         knockFlag = true;
+         moveStepper(2);
+       }
+       prevIndex = targetIndex; 
+      }
+    } 
+}
+
+
+
 void indicators(byte count,byte r,byte g,byte b)
 {
   byte inSpeed = 1;
-//  Serial.println(count);
   for(int x = count; x <= 15; x++)
   {
-          led.setColorAt(x,0,0,0);
-          led.show();
-          delay(inSpeed);
+      led.setColorAt(x,0,0,0);
+      led.show();
+      delay(inSpeed);
    }
-  for(int x = 0; x < count; x++)
+  for(int x=0;x<count;x++)
   {
-          led.setColorAt(x,r,g,b);
-          led.show();
-          delay(inSpeed);
+      led.setColorAt(x,r,g,b);
+      led.show();
+      delay(inSpeed);
    }
 } 

@@ -1,15 +1,19 @@
 package
 {
+	import flash.desktop.Clipboard;
+	import flash.desktop.ClipboardFormats;
 	import flash.display.Sprite;
 	import flash.display.StageAlign;
 	import flash.display.StageScaleMode;
 	import flash.events.Event;
+	import flash.events.FocusEvent;
 	import flash.events.KeyboardEvent;
 	import flash.events.MouseEvent;
 	import flash.events.TimerEvent;
 	import flash.geom.Point;
 	import flash.net.SharedObject;
 	import flash.net.getClassByAlias;
+	import flash.system.System;
 	import flash.text.TextField;
 	import flash.text.TextFieldType;
 	import flash.text.TextFormat;
@@ -45,9 +49,11 @@ package
 		private var _label_interval:Label = new Label;
 		private var _text_interval:TextInput = new TextInput;
 		private var _check_auto:CheckBox = new CheckBox;
+		private var _check_ultrasonic:CheckBox = new CheckBox;
+		private var _isEnableInput:Boolean = true;
 		private var _controls:Array = [];
 		private var _positions:Array = [];
-		private var _labels:Array = ["串口","","型号","","升级固件","连接串口","自动弹奏","","间隔（毫秒）","400","自动演奏"];
+		private var _labels:Array = ["串口","","型号","","升级固件","连接串口","自动弹奏","","间隔（毫秒）","400","自动演奏","开启超声波"];
 		private var _music_buttons:Array = ["1","2","3","4","5","6","7","Q","W","E","R","T","Y","U","I"];
 		private var _music_labels:Array = ["1","2","3","4","5","6","7","1","2","3","4","5","6","7","1"];
 		private var _music_value:Object = {1:1,2:2,3:3,4:4,5:5,6:6,7:7,
@@ -56,7 +62,6 @@ package
 		
 		public function MusicBot()
 		{
-			
 			_controls.push(_label_port);
 			_controls.push(_combobox_port);
 			_controls.push(_label_board);
@@ -68,8 +73,10 @@ package
 			_controls.push(_label_interval);
 			_controls.push(_text_interval);
 			_controls.push(_check_auto);
+			_controls.push(_check_ultrasonic);
+			
 			var tf:TextFormat = new TextFormat();
-			tf.size = 14;
+			tf.size = 13;
 			StyleManager.setStyle("textFormat", tf);
 			
 			stage.align = StageAlign.TOP_LEFT;
@@ -82,8 +89,12 @@ package
 			if(SerialManager.sharedManager().board=="uno"){
 				_combobox_board.selectedIndex = 1;
 			}
-			
+			if(so.data.interval==undefined){
+				so.data.interval = 400;
+				so.flush(200);
+			}
 			_combobox_board.addEventListener(Event.CHANGE,onChangedBoard);
+			_check_ultrasonic.enabled = false;
 			updatePorts();
 			checkUpgradeState();
 			_button_connect.addEventListener(MouseEvent.CLICK,onClickConnect);
@@ -91,20 +102,40 @@ package
 			_combobox_port.addEventListener(Event.OPEN,onShowPorts);
 			_combobox_port.addEventListener(MouseEvent.CLICK,onShowPorts);
 			stage.addEventListener(KeyboardEvent.KEY_UP,onKeyUp);
+			_text_auto.addEventListener(FocusEvent.FOCUS_IN,onFocusIn);
+			_text_auto.addEventListener(FocusEvent.FOCUS_OUT,onFocusOut);
+			_text_interval.addEventListener(Event.CHANGE,onIntervalChanged);
+			_text_interval.addEventListener(FocusEvent.FOCUS_IN,onFocusIn);
+			_text_interval.addEventListener(FocusEvent.FOCUS_OUT,onFocusOut);
+			_check_ultrasonic.addEventListener(Event.CHANGE,onChangeUltrasonic);
 			var timer:Timer = new Timer(10);
 			timer.addEventListener(TimerEvent.TIMER,onTimerLoop);
 			timer.start();
+		}
+		private function onFocusIn(evt:FocusEvent):void{
+			_isEnableInput = false;
+		}
+		private function onFocusOut(evt:FocusEvent):void{
+			_isEnableInput = true;
 		}
 		private function onResized(evt:Event):void{
 			stage.removeEventListener(Event.RESIZE,onResized);
 			var sw:uint = stage.stageWidth;
 			var sh:uint = stage.stageHeight;
-			with(this.graphics){
+			
+			var bg:Sprite = new Sprite;
+			with(bg.graphics){
 				clear();
 				beginFill(0xDDEEFF,1);
 				drawRect(0,0,sw,sh);
 				endFill();
 			}
+			addChild(bg);
+			var bg_txt:TextField = new TextField;
+			bg_txt.width = sw;
+			bg_txt.height = sh;
+			bg_txt.selectable = false;
+			addChild(bg_txt);
 			_text_auto.condenseWhite = true; 
 			_text_auto.background = true;
 			_text_auto.backgroundColor = 0xffffff;
@@ -112,9 +143,10 @@ package
 			_text_auto.borderColor = 0xa8a8a8;
 			_text_auto.width = sw-210;
 			_text_auto.height = 80;
-			_text_auto.type = TextFieldType.DYNAMIC;
+			_text_auto.type = TextFieldType.INPUT;
 			_text_auto.multiline = true;
 			_text_auto.wordWrap = true;
+			_text_auto.alwaysShowSelection = true;
 			_text_auto.addEventListener(Event.CHANGE,onTextChanged);
 			_positions.push(new Point(sw-170,30));
 			_positions.push(new Point(sw-130,30));
@@ -127,6 +159,7 @@ package
 			_positions.push(new Point(25,290));
 			_positions.push(new Point(115,290));
 			_positions.push(new Point(sw-266,290));
+			_positions.push(new Point(sw-276,168));
 			var text_help:TextField = new TextField;
 			text_help.width = 140;
 			text_help.height = 100;
@@ -158,6 +191,8 @@ package
 					addChild(_controls[i]);
 				}
 			}
+			var so:SharedObject = SharedObject.getLocal("makeblock","/");
+			_text_interval.text = so.data.interval;
 			drawButtons();
 		}
 		private function onTextChanged(evt:Event=null):void{
@@ -210,8 +245,17 @@ package
 				if(SerialManager.sharedManager().connect(_combobox_port.selectedItem.label)==1){
 					_button_connect.label = "断开串口";
 					checkUpgradeState();
+					_check_ultrasonic.enabled = true;
+					var so:SharedObject = SharedObject.getLocal("makeblock","/");
+					if(so.data.ultrasonic==undefined){
+						so.data.ultrasonic = 1;
+						so.flush(200);
+					}
+					_check_ultrasonic.selected = so.data.ultrasonic==1;
+					onChangeUltrasonic();
 				}
 			}else{
+				_check_ultrasonic.enabled = false;
 				SerialManager.sharedManager().disconnect();
 				checkUpgradeState();
 				_button_connect.label = "连接串口";
@@ -226,7 +270,19 @@ package
 		private function onChangedBoard(evt:Event):void{
 			SerialManager.sharedManager().connect(_combobox_board.selectedItem.data);
 		}
+		
+		private function onChangeUltrasonic(evt:Event=null):void{
+			if(SerialManager.sharedManager().isConnected){
+				SerialManager.sharedManager().sendString(_check_ultrasonic.selected?"M":"N");
+				var so:SharedObject = SharedObject.getLocal("makeblock","/");
+				so.data.ultrasonic = _check_ultrasonic.selected?1:0;
+				so.flush(200);
+			}
+		}
 		private function onKeyUp(evt:KeyboardEvent):void{
+			if(!_isEnableInput){
+				return;
+			}
 			if(evt.charCode==8){
 				if(_text_auto.text.length>0){
 					_text_auto.text = _text_auto.text.substr(0,_text_auto.text.length-1);
@@ -240,6 +296,11 @@ package
 					onTextChanged();
 				}
 			}
+		}
+		private function onIntervalChanged(evt:Event):void{
+			var so:SharedObject = SharedObject.getLocal("makeblock","/");
+			so.data.interval = ""+Number(_text_interval.text);
+			so.flush(200);
 		}
 		private function buttonCallback(s:String):void{
 			s = s.toLowerCase();
@@ -265,6 +326,7 @@ package
 					if(_lastIndex>_text_auto.text.length-1){
 						_lastIndex = 0;
 					}
+					_text_auto.setSelection(_lastIndex,_lastIndex+1);
 					var s:String = _text_auto.text.charAt(_lastIndex);
 					sendValue(s);
 					_lastIndex++;

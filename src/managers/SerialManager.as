@@ -126,7 +126,6 @@ package managers
 					if(value<-255||value>1023){
 						value = 0;
 					}
-					trace("value:"+value,"extId:"+extId);	
 //					_scratch.extensionManager.reporterCompleted("Makeblock",extId,value);
 //					_scratch.extensionManager.reporterCompleted("Makeblock",extId+1,value);
 				}
@@ -228,9 +227,9 @@ package managers
 			if(_serial.isConnected){
 				if(port.indexOf("upgrade")>-1){
 					if(_board=="leonardo"){
-						_serial.close();
-						_serial.open(currentPort,1200);
-						_serial.close();
+						setTimeout(function():void{_serial.close();},100);
+						setTimeout(function():void{_serial.open(currentPort,1200);},300);
+						setTimeout(function():void{_serial.close();},500);
 						var timer:Timer = new Timer(500,20);
 						timer.addEventListener(TimerEvent.TIMER,checkAvailablePort);
 						timer.start();
