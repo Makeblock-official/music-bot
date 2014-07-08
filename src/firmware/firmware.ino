@@ -11,8 +11,8 @@ int dirPin = mePort[PORT_1].s1;
 int stpPin = mePort[PORT_1].s2;
 Stepper stepper(Stepper::DRIVER,stpPin,dirPin); 
 MeUltrasonic ultraSensor(PORT_3);
-MeRGBLed led(PORT_6,SLOT_2);
-MePort sw(PORT_6,SLOT_1);
+MeRGBLed led(PORT_6,SLOT_1);
+MePort sw(PORT_6,SLOT_2);
 MeDCMotor kicker(M1);
 
 char mode=0;
@@ -26,10 +26,14 @@ unsigned int knockFlag = false;
 
 void setup()
 {
+  pinMode(A1,OUTPUT);  
+  digitalWrite(A1,HIGH);    
+  pinMode(A1,INPUT);
+  
   led.setNumber(15);
   indicators(15,0,0,0);
   led.show();  
-  initStepper();  
+  initStepper(); 
   pinMode(7,OUTPUT);
   pinMode(6,OUTPUT);
   digitalWrite(7,HIGH);
@@ -87,7 +91,7 @@ void initStepper()
   stepper.setAcceleration(10000);
   stepper.run(); 
   stepper.moveTo(-10000);
-  while(sw.Dread1())  
+  while(sw.Dread2())  
   {
     if(!stepper.run()) break;
   }
@@ -129,8 +133,8 @@ void kickoff()
 {
   knockFlag = false; 
   pinMode(6,OUTPUT);
-  analogWrite(6,110);
-  delay(60);
+  analogWrite(6,105);
+  delay(50);
   analogWrite(6,0);
   pinMode(6,INPUT);
 }
