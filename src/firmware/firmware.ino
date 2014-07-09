@@ -183,7 +183,6 @@ void ultra_control()
     }
 }
 
-
 void indicators(byte count,byte r,byte g,byte b)
 {
   byte inSpeed = 1;
