@@ -21,7 +21,7 @@ int prevIndex=0;
 int ledFlag = true;
 int targetIndex = -1;
 int currentIndex = -1;
-unsigned int onestep = 80;
+unsigned int onestep = 79;
 unsigned int knockFlag = false;
 
 void setup()
@@ -43,7 +43,7 @@ void setup()
   led.show();
   kickoff();
   delay(3000);
-  music();
+//  music();
   Serial.begin(9600);  
 }
 
@@ -74,12 +74,13 @@ void upper_computer()
      }
      if(temp< 0x12)
      {
+       temp=16-temp;
        targetIndex = temp;
        knockFlag = true;
      }
      if(targetIndex!=prevIndex)
      {
-       moveStepper(1);
+       moveStepper();
        prevIndex = targetIndex;  
      }
   }  
@@ -88,26 +89,26 @@ void upper_computer()
 void initStepper()
 {
   stepper.setMaxSpeed(500);
-  stepper.setAcceleration(10000);
+  stepper.setAcceleration(10000); 
+  stepper.setCurrentPosition(0);  
   stepper.run(); 
   stepper.moveTo(-10000);
   while(sw.Dread2())  
   {
     if(!stepper.run()) break;
   }
-  stepper.stop();
-  delay(1000);  
+  delay(2000);  
   stepper.setCurrentPosition(0);
   stepper.run();
-  stepper.moveTo(35);
-  while(stepper.currentPosition()!=35) 
+  stepper.moveTo(30);
+  while(stepper.currentPosition()!=30) 
   {
     stepper.run();
   }
   stepper.stop(); 
   stepper.setMaxSpeed(10000);
   stepper.setAcceleration(10000);
-  stepper.setCurrentPosition(80);
+  stepper.setCurrentPosition(79);
   stepper.run();
 }
 
@@ -117,11 +118,12 @@ void music()
   while(music_score[i]!='\0')
   {
      targetIndex=(music_score[i]-48);
-     if (targetIndex==0)
+     targetIndex=16-targetIndex;
+     if (targetIndex==16)
        delay(200);
      else
      {
-       moveStepper(1);
+       moveStepper();
        kickoff(); 
      }
      i++;
@@ -133,24 +135,24 @@ void kickoff()
 {
   knockFlag = false; 
   pinMode(6,OUTPUT);
-  analogWrite(6,105);
+  analogWrite(6,115);
   delay(50);
   analogWrite(6,0);
   pinMode(6,INPUT);
 }
 
 
-void moveStepper(char x)
+void moveStepper()
 {
   if(targetIndex>0 && targetIndex<16)
   {
     int stepPos = targetIndex*onestep; 
     stepper.moveTo(stepPos);
     while(stepper.run());
-    int r=random(1,80);
-    int b=random(1,80);
-    int g=random(1,80);
-    indicators(targetIndex*x,r,b,g);
+    int r=random(1,50);
+    int b=random(1,50);
+    int g=random(1,50);
+    indicators(targetIndex,r,b,g);
     delay(50);
   }
 }
@@ -165,25 +167,17 @@ void checkStepperPosition()
     }
 }
 
-
 void ultra_control()
 {
     value = ultraSensor.distanceCm();
     if(value==0) return;
     if(value <70)
     {
-      for(int i=1;i<=7;i++)
-      {
-        if(value<10*i) 
-        {
-          targetIndex = i;
-          break;
-        }
-      }      
+      targetIndex=value/10+9;     
       if(targetIndex!=prevIndex)
       {
          knockFlag = true;
-         moveStepper(2);
+         moveStepper();
          prevIndex = targetIndex; 
       }
     }
