@@ -43,7 +43,7 @@ void setup()
   led.show();
   kickoff();
   delay(3000);
-//  music();
+  music();
   Serial.begin(9600);  
 }
 
