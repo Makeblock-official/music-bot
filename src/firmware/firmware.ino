@@ -26,10 +26,6 @@ unsigned int knockFlag = false;
 
 void setup()
 {
-  pinMode(A1,OUTPUT);  
-  digitalWrite(A1,HIGH);    
-  pinMode(A1,INPUT);
-  
   led.setNumber(15);
   indicators(15,0,0,0);
   led.show();  
@@ -42,7 +38,7 @@ void setup()
   indicators(1,100,0,0);  
   led.show();
   kickoff();
-  delay(3000);
+  delay(5000);
   music();
   Serial.begin(9600);  
 }
@@ -92,7 +88,10 @@ void initStepper()
   stepper.setAcceleration(10000); 
   stepper.setCurrentPosition(0);  
   stepper.run(); 
-  stepper.moveTo(-10000);
+  pinMode(A1,OUTPUT);  
+  analogWrite(A1,800);
+  delay(1);
+  stepper.move(-10000);
   while(sw.Dread2())  
   {
     if(!stepper.run()) break;
@@ -100,8 +99,8 @@ void initStepper()
   delay(2000);  
   stepper.setCurrentPosition(0);
   stepper.run();
-  stepper.moveTo(30);
-  while(stepper.currentPosition()!=30) 
+  stepper.moveTo(40);
+  while(stepper.currentPosition()!=40) 
   {
     stepper.run();
   }
@@ -153,7 +152,6 @@ void moveStepper()
     int b=random(1,50);
     int g=random(1,50);
     indicators(targetIndex,r,b,g);
-    delay(50);
   }
 }
 
@@ -178,7 +176,8 @@ void ultra_control()
       {
          knockFlag = true;
          moveStepper();
-         prevIndex = targetIndex; 
+         prevIndex = targetIndex;
+         delay(1); 
       }
     }
 }
