@@ -13,6 +13,7 @@ package
 	import flash.geom.Point;
 	import flash.net.SharedObject;
 	import flash.net.getClassByAlias;
+	import flash.system.Capabilities;
 	import flash.system.System;
 	import flash.text.TextField;
 	import flash.text.TextFieldType;
@@ -53,7 +54,8 @@ package
 		private var _isEnableInput:Boolean = true;
 		private var _controls:Array = [];
 		private var _positions:Array = [];
-		private var _labels:Array = ["串口","","型号","","升级固件","连接串口","自动弹奏","","间隔（毫秒）","400","自动演奏","开启超声波"];
+		private var _labels:Array = ["串口","","型号","","升级固件","连接串口","演奏代码","","间隔（毫秒）","400","自动演奏","开启超声波"];
+		private var _labels_en:Array = ["Serial","","Board","","Upgrade","Connect","Play","","Interval（ms）","400","Auto Play","Enable Ultrasonic Sensor"];
 		private var _music_buttons:Array = ["1","2","3","4","5","6","7","Q","W","E","R","T","Y","U","I"];
 		private var _music_labels:Array = ["1","2","3","4","5","6","7","1","2","3","4","5","6","7","1"];
 		private var _music_value:Object = {1:1,2:2,3:3,4:4,5:5,6:6,7:7,
@@ -74,11 +76,12 @@ package
 			_controls.push(_text_interval);
 			_controls.push(_check_auto);
 			_controls.push(_check_ultrasonic);
-			
+			_check_ultrasonic.setSize(200,20);
 			var tf:TextFormat = new TextFormat();
 			tf.size = 13;
 			StyleManager.setStyle("textFormat", tf);
 			
+			_text_interval.restrict = "0-9";
 			stage.align = StageAlign.TOP_LEFT;
 			stage.scaleMode = StageScaleMode.NO_SCALE;
 			stage.frameRate = 30;
@@ -159,7 +162,7 @@ package
 			_positions.push(new Point(25,290));
 			_positions.push(new Point(115,290));
 			_positions.push(new Point(sw-266,290));
-			_positions.push(new Point(sw-276,168));
+			_positions.push(new Point(Capabilities.language!="zh-CN"?(sw-360):(sw-276),168));
 			var text_help:TextField = new TextField;
 			text_help.width = 140;
 			text_help.height = 100;
@@ -169,7 +172,11 @@ package
 			tf.font = "Arial";
 			text_help.multiline = true;
 			text_help.selectable = false;
-			text_help.htmlText = "<a href='http://bbs.makeblock.cc/thread-252-1-1.html?musicbot'>帮助</a><br/><br/><a href='http://bbs.makeblock.cc/forum-39-1.html?musicbot'>Scratch机器人</a><br/><br/><a href='http://makeblock.cc/?musicbot'>Makeblock官网</a>";
+			if(Capabilities.language!="zh-CN"){
+				text_help.htmlText = "<a href='http://forum.makeblock.cc/t/music-robot-kit-v2-0-faq#musicbot'>FAQ</a><br/><br/><a href='http://forum.makeblock.cc/#musicbot'>Forum</a><br/><br/><a href='http://makeblock.cc/?musicbot'>Makeblock</a>";
+			}else{
+				text_help.htmlText = "<a href='http://bbs.makeblock.cc/thread-252-1-1.html?musicbot'>帮助</a><br/><br/><a href='http://bbs.makeblock.cc/forum-39-1.html?musicbot'>Scratch机器人</a><br/><br/><a href='http://makeblock.cc/?musicbot'>Makeblock官网</a>";
+			}
 			text_help.setTextFormat(tf);
 			text_help.x = sw - 130;
 			text_help.y = 198;
@@ -177,15 +184,16 @@ package
 			for(var i:uint=0;i<_controls.length;i++){
 				_controls[i].x = _positions[i].x;
 				_controls[i].y = _positions[i].y;
+				var s:String = Capabilities.language!="zh-CN"?_labels_en[i]:_labels[i];
 				if(getQualifiedClassName(_controls[i]).indexOf("Label")>-1){
-					_controls[i].text = _labels[i];
+					_controls[i].text = s;
 				}else if(getQualifiedClassName(_controls[i]).indexOf("Button")>-1){
-					_controls[i].label = _labels[i];
+					_controls[i].label = s;
 				}else if(getQualifiedClassName(_controls[i]).indexOf("ComboBox")>-1){
 				}else if(getQualifiedClassName(_controls[i]).indexOf("TextInput")>-1){
-					_controls[i].text = _labels[i];
+					_controls[i].text = s;
 				}else if(getQualifiedClassName(_controls[i]).indexOf("CheckBox")>-1){
-					_controls[i].label = _labels[i];
+					_controls[i].label = s;
 				}
 				if(!this.contains(_controls[i])){
 					addChild(_controls[i]);
@@ -241,9 +249,11 @@ package
 			_combobox_port.dataProvider = dp;
 		}
 		private function onClickConnect(evt:MouseEvent):void{
-			if(_button_connect.label == "连接串口"){
+			var c_str:String = Capabilities.language!="zh-CN"?"Connect":"连接串口";
+			var d_str:String = Capabilities.language!="zh-CN"?"Disconnect":"断开串口";
+			if(_button_connect.label == c_str){
 				if(SerialManager.sharedManager().connect(_combobox_port.selectedItem.label)==1){
-					_button_connect.label = "断开串口";
+					_button_connect.label = d_str;
 					checkUpgradeState();
 					_check_ultrasonic.enabled = true;
 					var so:SharedObject = SharedObject.getLocal("makeblock","/");
@@ -258,13 +268,14 @@ package
 				_check_ultrasonic.enabled = false;
 				SerialManager.sharedManager().disconnect();
 				checkUpgradeState();
-				_button_connect.label = "连接串口";
+				_button_connect.label = c_str;
 			}
 		}
 		private function onClickUpgrade(evt:MouseEvent):void{
+			var c_str:String = Capabilities.language!="zh-CN"?"Connect":"连接串口";
 			if(SerialManager.sharedManager().isConnected){
 				SerialManager.sharedManager().connect("upgrade");
-				_button_connect.label = "连接串口";
+				_button_connect.label = c_str;
 			}
 		}
 		private function onChangedBoard(evt:Event):void{
