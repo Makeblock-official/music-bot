@@ -21,7 +21,7 @@ int prevIndex=0;
 int ledFlag = true;
 int targetIndex = -1;
 int currentIndex = -1;
-unsigned int onestep = 79;
+unsigned int onestep = 80;
 unsigned int knockFlag = false;
 
 void setup()
@@ -85,14 +85,12 @@ void upper_computer()
 void initStepper()
 {
   stepper.setMaxSpeed(500);
-  stepper.setAcceleration(10000); 
+  stepper.setAcceleration(15000); 
   stepper.setCurrentPosition(0);  
   stepper.run(); 
-  pinMode(A1,OUTPUT);  
-  analogWrite(A1,800);
-  delay(1);
-  stepper.move(-10000);
-  while(sw.Dread2())  
+  pinMode (A1,INPUT_PULLUP);
+  stepper.moveTo(-10000);
+  while(digitalRead(A1))  
   {
     if(!stepper.run()) break;
   }
@@ -107,7 +105,7 @@ void initStepper()
   stepper.stop(); 
   stepper.setMaxSpeed(10000);
   stepper.setAcceleration(10000);
-  stepper.setCurrentPosition(79);
+  stepper.setCurrentPosition(80);
   stepper.run();
 }
 
@@ -134,7 +132,7 @@ void kickoff()
 {
   knockFlag = false; 
   pinMode(6,OUTPUT);
-  analogWrite(6,115);
+  analogWrite(6,105);
   delay(50);
   analogWrite(6,0);
   pinMode(6,INPUT);
