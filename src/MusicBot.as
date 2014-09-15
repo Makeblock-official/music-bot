@@ -61,9 +61,10 @@ package
 		private var _music_value:Object = {1:1,2:2,3:3,4:4,5:5,6:6,7:7,
 										   q:8,w:9,e:10,r:11,t:12,y:13,u:14,i:15};
 		[SWF(width="1024",height="360")]
-		
+		private var _language:String = "zh_CN";
 		public function MusicBot()
 		{
+			_language = Capabilities.language;
 			_controls.push(_label_port);
 			_controls.push(_combobox_port);
 			_controls.push(_label_board);
@@ -162,7 +163,7 @@ package
 			_positions.push(new Point(25,290));
 			_positions.push(new Point(115,290));
 			_positions.push(new Point(sw-266,290));
-			_positions.push(new Point(Capabilities.language!="zh-CN"?(sw-360):(sw-276),168));
+			_positions.push(new Point(_language!="zh-CN"?(sw-360):(sw-276),168));
 			var text_help:TextField = new TextField;
 			text_help.width = 140;
 			text_help.height = 100;
@@ -172,7 +173,7 @@ package
 			tf.font = "Arial";
 			text_help.multiline = true;
 			text_help.selectable = false;
-			if(Capabilities.language!="zh-CN"){
+			if(_language!="zh-CN"){
 				text_help.htmlText = "<a href='http://forum.makeblock.cc/t/music-robot-kit-v2-0-faq#musicbot'>FAQ</a><br/><br/><a href='http://forum.makeblock.cc/#musicbot'>Forum</a><br/><br/><a href='http://makeblock.cc/?musicbot'>Makeblock</a>";
 			}else{
 				text_help.htmlText = "<a href='http://bbs.makeblock.cc/thread-252-1-1.html?musicbot'>帮助</a><br/><br/><a href='http://bbs.makeblock.cc/forum-39-1.html?musicbot'>Scratch机器人</a><br/><br/><a href='http://makeblock.cc/?musicbot'>Makeblock官网</a>";
@@ -184,7 +185,7 @@ package
 			for(var i:uint=0;i<_controls.length;i++){
 				_controls[i].x = _positions[i].x;
 				_controls[i].y = _positions[i].y;
-				var s:String = Capabilities.language!="zh-CN"?_labels_en[i]:_labels[i];
+				var s:String = _language!="zh-CN"?_labels_en[i]:_labels[i];
 				if(getQualifiedClassName(_controls[i]).indexOf("Label")>-1){
 					_controls[i].text = s;
 				}else if(getQualifiedClassName(_controls[i]).indexOf("Button")>-1){
@@ -249,8 +250,8 @@ package
 			_combobox_port.dataProvider = dp;
 		}
 		private function onClickConnect(evt:MouseEvent):void{
-			var c_str:String = Capabilities.language!="zh-CN"?"Connect":"连接串口";
-			var d_str:String = Capabilities.language!="zh-CN"?"Disconnect":"断开串口";
+			var c_str:String = _language!="zh-CN"?"Connect":"连接串口";
+			var d_str:String = _language!="zh-CN"?"Disconnect":"断开串口";
 			if(_button_connect.label == c_str){
 				if(SerialManager.sharedManager().connect(_combobox_port.selectedItem.label)==1){
 					_button_connect.label = d_str;
@@ -272,7 +273,7 @@ package
 			}
 		}
 		private function onClickUpgrade(evt:MouseEvent):void{
-			var c_str:String = Capabilities.language!="zh-CN"?"Connect":"连接串口";
+			var c_str:String = _language!="zh-CN"?"Connect":"连接串口";
 			if(SerialManager.sharedManager().isConnected){
 				SerialManager.sharedManager().connect("upgrade");
 				_button_connect.label = c_str;
