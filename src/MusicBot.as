@@ -41,6 +41,7 @@ package
 	{
 		private var _combobox_port:ComboBox = new ComboBox;
 		private var _combobox_board:ComboBox = new ComboBox;
+		private var _combobox_lang:ComboBox = new ComboBox;
 		private var _label_port:Label = new Label;
 		private var _label_board:Label = new Label;
 		private var _button_upgrade:Button = new Button;
@@ -61,10 +62,9 @@ package
 		private var _music_value:Object = {1:1,2:2,3:3,4:4,5:5,6:6,7:7,
 										   q:8,w:9,e:10,r:11,t:12,y:13,u:14,i:15};
 		[SWF(width="1024",height="360")]
-		private var _language:String = "zh_CN";
+		private var _language:String = "en";
 		public function MusicBot()
 		{
-			_language = Capabilities.language;
 			_controls.push(_label_port);
 			_controls.push(_combobox_port);
 			_controls.push(_label_board);
@@ -77,6 +77,7 @@ package
 			_controls.push(_text_interval);
 			_controls.push(_check_auto);
 			_controls.push(_check_ultrasonic);
+			_controls.push(_combobox_lang);
 			_check_ultrasonic.setSize(200,20);
 			var tf:TextFormat = new TextFormat();
 			tf.size = 13;
@@ -87,17 +88,26 @@ package
 			stage.scaleMode = StageScaleMode.NO_SCALE;
 			stage.frameRate = 30;
 			stage.addEventListener(Event.RESIZE,onResized);
+			
+			var so:SharedObject = SharedObject.getLocal("makeblock","/");
+			_language = so.data.lang!=undefined?so.data.lang:Capabilities.language;
+			
 			_combobox_board.addItem({label:"Leonardo",data:"leonardo"});
 			_combobox_board.addItem({label:"Uno",data:"uno"});
-			var so:SharedObject = SharedObject.getLocal("makeblock","/");
+			_combobox_lang.addItem({label:"English",data:"en"});
+			_combobox_lang.addItem({label:"简体中文",data:"zh-CN"});
 			if(SerialManager.sharedManager().board=="uno"){
 				_combobox_board.selectedIndex = 1;
+			}
+			if(_language=="zh-CN"){
+				_combobox_lang.selectedIndex = 1;
 			}
 			if(so.data.interval==undefined){
 				so.data.interval = 400;
 				so.flush(200);
 			}
 			_combobox_board.addEventListener(Event.CHANGE,onChangedBoard);
+			_combobox_lang.addEventListener(Event.CHANGE,onChangedLang);
 			_check_ultrasonic.enabled = false;
 			updatePorts();
 			checkUpgradeState();
@@ -115,6 +125,7 @@ package
 			var timer:Timer = new Timer(10);
 			timer.addEventListener(TimerEvent.TIMER,onTimerLoop);
 			timer.start();
+			dispatchEvent(new Event(Event.RESIZE));
 		}
 		private function onFocusIn(evt:FocusEvent):void{
 			_isEnableInput = false;
@@ -122,66 +133,74 @@ package
 		private function onFocusOut(evt:FocusEvent):void{
 			_isEnableInput = true;
 		}
-		private function onResized(evt:Event):void{
-			stage.removeEventListener(Event.RESIZE,onResized);
+		private var _firstLaunch:Boolean = true;
+		private var text_help:TextField = new TextField;
+		private function onResized(evt:Event=null):void{
+//			stage.removeEventListener(Event.RESIZE,onResized);
 			var sw:uint = stage.stageWidth;
 			var sh:uint = stage.stageHeight;
+			if(_firstLaunch){
+				_firstLaunch = false;
 			
-			var bg:Sprite = new Sprite;
-			with(bg.graphics){
-				clear();
-				beginFill(0xDDEEFF,1);
-				drawRect(0,0,sw,sh);
-				endFill();
+				var bg:Sprite = new Sprite;
+				with(bg.graphics){
+					clear();
+					beginFill(0xDDEEFF,1);
+					drawRect(0,0,sw,sh);
+					endFill();
+				}
+				addChild(bg);
+				var bg_txt:TextField = new TextField;
+				bg_txt.width = sw;
+				bg_txt.height = sh;
+				bg_txt.selectable = false;
+				addChild(bg_txt);
+				_text_auto.condenseWhite = true; 
+				_text_auto.background = true;
+				_text_auto.backgroundColor = 0xffffff;
+				_text_auto.border = true;
+				_text_auto.borderColor = 0xa8a8a8;
+				_text_auto.width = sw-210;
+				_text_auto.height = 80;
+				_text_auto.type = TextFieldType.INPUT;
+				_text_auto.multiline = true;
+				_text_auto.wordWrap = true;
+				_text_auto.alwaysShowSelection = true;
+				_text_auto.removeEventListener(Event.CHANGE,onTextChanged);
+				_text_auto.addEventListener(Event.CHANGE,onTextChanged);
+				_positions = [];
+				_positions.push(new Point(sw-170,30));
+				_positions.push(new Point(sw-130,30));
+				_positions.push(new Point(sw-170,70));
+				_positions.push(new Point(sw-130,70));
+				_positions.push(new Point(sw-130,110));
+				_positions.push(new Point(sw-130,150));
+				_positions.push(new Point(25,170));
+				_positions.push(new Point(25,200));
+				_positions.push(new Point(25,290));
+				_positions.push(new Point(115,290));
+				_positions.push(new Point(sw-266,290));
+				_positions.push(new Point(_language!="zh-CN"?(sw-360):(sw-276),168));
+				_positions.push(new Point(sw-130,300));
+				
+				text_help.width = 140;
+				text_help.height = 100;
+				var tf:TextFormat = new TextFormat;
+				tf.color = 0x006699;
+				tf.size = 14;
+				tf.font = "Arial";
+				text_help.multiline = true;
+				text_help.selectable = false;
+				text_help.defaultTextFormat = tf;
+				addChild(text_help);
 			}
-			addChild(bg);
-			var bg_txt:TextField = new TextField;
-			bg_txt.width = sw;
-			bg_txt.height = sh;
-			bg_txt.selectable = false;
-			addChild(bg_txt);
-			_text_auto.condenseWhite = true; 
-			_text_auto.background = true;
-			_text_auto.backgroundColor = 0xffffff;
-			_text_auto.border = true;
-			_text_auto.borderColor = 0xa8a8a8;
-			_text_auto.width = sw-210;
-			_text_auto.height = 80;
-			_text_auto.type = TextFieldType.INPUT;
-			_text_auto.multiline = true;
-			_text_auto.wordWrap = true;
-			_text_auto.alwaysShowSelection = true;
-			_text_auto.addEventListener(Event.CHANGE,onTextChanged);
-			_positions.push(new Point(sw-170,30));
-			_positions.push(new Point(sw-130,30));
-			_positions.push(new Point(sw-170,70));
-			_positions.push(new Point(sw-130,70));
-			_positions.push(new Point(sw-130,110));
-			_positions.push(new Point(sw-130,150));
-			_positions.push(new Point(25,170));
-			_positions.push(new Point(25,200));
-			_positions.push(new Point(25,290));
-			_positions.push(new Point(115,290));
-			_positions.push(new Point(sw-266,290));
-			_positions.push(new Point(_language!="zh-CN"?(sw-360):(sw-276),168));
-			var text_help:TextField = new TextField;
-			text_help.width = 140;
-			text_help.height = 100;
-			var tf:TextFormat = new TextFormat;
-			tf.color = 0x006699;
-			tf.size = 14;
-			tf.font = "Arial";
-			text_help.multiline = true;
-			text_help.selectable = false;
 			if(_language!="zh-CN"){
 				text_help.htmlText = "<a href='http://forum.makeblock.cc/t/music-robot-kit-v2-0-faq#musicbot'>FAQ</a><br/><br/><a href='http://forum.makeblock.cc/#musicbot'>Forum</a><br/><br/><a href='http://makeblock.cc/?musicbot'>Makeblock</a>";
 			}else{
 				text_help.htmlText = "<a href='http://bbs.makeblock.cc/thread-252-1-1.html?musicbot'>帮助</a><br/><br/><a href='http://bbs.makeblock.cc/forum-39-1.html?musicbot'>Scratch机器人</a><br/><br/><a href='http://makeblock.cc/?musicbot'>Makeblock官网</a>";
 			}
-			text_help.setTextFormat(tf);
 			text_help.x = sw - 130;
 			text_help.y = 198;
-			addChild(text_help);
 			for(var i:uint=0;i<_controls.length;i++){
 				_controls[i].x = _positions[i].x;
 				_controls[i].y = _positions[i].y;
@@ -282,7 +301,18 @@ package
 		private function onChangedBoard(evt:Event):void{
 			SerialManager.sharedManager().connect(_combobox_board.selectedItem.data);
 		}
-		
+		private function onChangedLang(evt:Event):void{
+			
+			var so:SharedObject = SharedObject.getLocal("makeblock","/");
+			if(_combobox_lang.selectedIndex==0){
+				so.data.lang = "en";
+			}else{
+				so.data.lang = "zh-CN";
+			}
+			_language = so.data.lang;
+			so.flush(1000);
+			onResized();
+		}
 		private function onChangeUltrasonic(evt:Event=null):void{
 			if(SerialManager.sharedManager().isConnected){
 				SerialManager.sharedManager().sendString(_check_ultrasonic.selected?"M":"N");
