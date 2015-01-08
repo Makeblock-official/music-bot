@@ -1,7 +1,5 @@
 package
 {
-	import flash.desktop.Clipboard;
-	import flash.desktop.ClipboardFormats;
 	import flash.display.Sprite;
 	import flash.display.StageAlign;
 	import flash.display.StageScaleMode;
@@ -12,9 +10,7 @@ package
 	import flash.events.TimerEvent;
 	import flash.geom.Point;
 	import flash.net.SharedObject;
-	import flash.net.getClassByAlias;
 	import flash.system.Capabilities;
-	import flash.system.System;
 	import flash.text.TextField;
 	import flash.text.TextFieldType;
 	import flash.text.TextFormat;
